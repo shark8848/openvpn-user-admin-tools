@@ -131,9 +131,9 @@ create_mail_content(){
 	echo "    If it is not what you need, please delete it immediately.">>$content_file
 	echo "    After downloading, unzip the file $vpn_user.tar.gz to the OpenVPN installation directory.">>$content_file
 	echo "Open $vpn_user.ovpn file with OpenVPN client to connect to shark OpenVPN server.">>$content_file
-	echo "      "
-	echo "      "
-	echo "      "
+	echo "      ">>$content_file
+	echo "      ">>$content_file
+	echo "      ">>$content_file
 	echo "		shark cloud">>$content_file
 	echo "         " `date +%Y%m%d`>>$content_file
 
