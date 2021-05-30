@@ -1,0 +1,223 @@
+#!/bin/bash
+###############################################################################
+# Author: Sun Huayi(shark8848)
+# Created on: May 29, 2021
+# Function Description: add, copy and delete users of OpenVPN server
+# Dependent external programs: bash,heirloom-mailx,expect etc.
+# 1. /etc/openvpn/easy-sra/vpn_create.expect //create openvpn_user
+# 2. /etc/openvpn/easy-sra/vpn_del.expect //del openvpn_user
+###############################################################################
+  args_num=$#
+  option=$1
+  vpn_user=$2
+  password=$3
+  mail_address=$4
+  content_file=/etc/openvpn/easy-rsa/bin/mail_content.txt
+
+
+  help()
+  #help
+  {
+  echo '+++++++++  shark cloud openvpn server ,openvpn-user-tools v1.0 +++++++++++++'
+  echo 'Author: Sun Huayi'
+  echo 'Created on: May 29, 2021'
+  echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+  echo 'add user: vpnuser add <username> <password>'
+  echo 'add user && mailto: vpnuser add-mail <username> <password> <mail address>'
+  echo 'delete user: vpnuser del <username> <password>'
+  echo 'copy user: vpnuser copy <username>'
+  echo 'copy user && mailto: vpnuser copy-mail <username> <password> <mail address>'
+  echo '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+  }
+  add_user()
+  #add user
+  {
+	  if [ -f /etc/openvpn/easy-rsa/pki/issued/$vpn_user.crt ];then
+#		  echo "================================================<notice>================================================"
+		  echo "The user $vpn_user already exist"
+#		  echo "=========================================================================================================="
+	  else
+		  cd /etc/openvpn/easy-rsa/
+		  source ./vars &>/dev/null
+  # create .crt .key
+  		  cd /etc/openvpn/easy-rsa
+		  expect vpn_create.expect $vpn_user $password &>/dev/null
+		  #expect vpn_create.expect $vpn_user $password
+  # copy the files to temp dir
+		  cd /etc/openvpn/easy-rsa/keys
+		  rm -rf *.*
+		  cp /etc/openvpn/easy-rsa/pki/private/$vpn_user.key   /etc/openvpn/easy-rsa/keys/$vpn_user.key
+		  cp /etc/openvpn/easy-rsa/pki/issued/$vpn_user.crt   /etc/openvpn/easy-rsa/keys/$vpn_user.crt
+		  cp /etc/openvpn/easy-rsa/pki/ca.crt   /etc/openvpn/easy-rsa/keys/ca.crt
+		  cp /etc/openvpn/easy-rsa/pki/dh.pem  /etc/openvpn/easy-rsa/keys/dh.pem
+		  cp /etc/openvpn/server/ta.key  /etc/openvpn/easy-rsa/keys/ta.key
+  # create .ovpn
+		  cd /etc/openvpn/easy-rsa/keys
+		  create_ovpn
+  # tar the files ,create the download file.
+		  tar zcf /etc/openvpn/easy-rsa/download/$vpn_user.tar.gz *.* &>/dev/null
+#		  echo "================================================<notice>================================================"
+		  echo "User $vpn_user created successfully"
+		  #rm -rf *.*
+#		  echo "================================================<notice>================================================"
+		  echo "The key file of user $vpn_user is generated successfully. Please download it in the directory /etc/openvpn/easy-rsa/download"
+#		  echo "=========================================================================================================="
+	  fi
+  }
+# create and mail to $mail_address
+  add_mail(){
+	  add_user
+	  send_mail
+  }
+
+  create_ovpn()
+  # create file .ovpn
+  {
+# 	echo "================================================<Create file .ovpn>================================================"
+	echo -e "client" > $vpn_user.ovpn
+	echo -e "dev tun\nproto tcp\nremote 8.136.114.86 9194\nresolv-retry infinite\nnobind">>$vpn_user.ovpn
+	echo -e ";user nobody\n;group nobody\npersist-key\npersist-tun\nca ca.crt">>$vpn_user.ovpn
+	echo -e "cert $vpn_user.crt">>$vpn_user.ovpn
+	echo -e "key $vpn_user.key">>$vpn_user.ovpn
+	echo -e "remote-cert-tls server\ntls-auth ta.key 1\ncipher AES-256-CBC\ncompress lz4-v2\nverb 3\n;mute 20">>$vpn_user.ovpn
+
+	echo "File $vpn_user.ovpn created successfully"
+  }
+
+  copy_user()
+  #copy user
+  {
+	  if [ -f /etc/openvpn/easy-rsa/pki/issued/$vpn_user.crt ];then
+  # copy the files to temp dir
+		  cd /etc/openvpn/easy-rsa/keys
+		  rm -rf *.*
+		  cp /etc/openvpn/easy-rsa/pki/private/$vpn_user.key   /etc/openvpn/easy-rsa/keys/$vpn_user.key
+		  cp /etc/openvpn/easy-rsa/pki/issued/$vpn_user.crt   /etc/openvpn/easy-rsa/keys/$vpn_user.crt
+		  cp /etc/openvpn/easy-rsa/pki/ca.crt   /etc/openvpn/easy-rsa/keys/ca.crt
+		  cp /etc/openvpn/easy-rsa/pki/dh.pem  /etc/openvpn/easy-rsa/keys/dh.pem
+		  cp /etc/openvpn/server/ta.key  /etc/openvpn/easy-rsa/keys/ta.key
+  # create .ovpn
+		  create_ovpn
+  # tar the files ,create the download file.
+		  tar zcf /etc/openvpn/easy-rsa/download/$vpn_user.tar.gz *.* &>/dev/null
+		  rm -rf *.*
+#	  echo "================================================<notice>================================================"
+		  echo "The key file of user $vpn_user is generated successfully. Please download it in the directory /etc/openvpn/easy-rsa/download"
+#	  echo "=========================================================================================================="
+	else
+		  echo "The user $vpn_user is not exist"
+	fi
+}
+
+copy_mail(){
+	  copy_user
+	  send_mail
+}
+
+  del_user()
+  #del user
+  {
+#  if [ $args_num -ne 2 ];then
+#	  echo "invalid option"
+#	  help
+#  else
+	  if [ -f /etc/openvpn/easy-rsa/pki/issued/$vpn_user.crt ];then
+		  cd /etc/openvpn/easy-rsa/
+		  source ./vars &>/dev/null
+		  expect vpn_del.expect $vpn_user $password &>/dev/null
+		  #expect vpn_del.expect $vpn_user $password
+		  rm -rf /etc/openvpn/easy-rsa/pki/private/$vpn_user.key
+		  rm -rf /etc/openvpn/easy-rsa/pki/issued/$vpn_user.crt
+		  rm -rf /etc/openvpn/easy-rsa/pki/reqs/$vpn_user.req
+#		  echo "================================================<successfully>================================================"
+		  echo "User $vpn_user deleted successfully"
+#		  echo "=========================================================================================================="
+	  else
+		  echo "The user $vpn_user is not exist"
+	  fi
+#  fi
+  }
+
+create_mail_content(){
+	>$content_file
+	echo "Dear $vpn_user:">>$content_file
+	echo "    This is an email from shark cloud with the key file of OpenVPN client attached.">>$content_file
+	echo "Please download and keep it safe.">>$content_file
+	echo "    If it is not what you need, please delete it immediately.">>$content_file
+	echo "    After downloading, unzip the file $vpn_user.tar.gz to the OpenVPN installation directory.">>$content_file
+	echo "Open $vpn_user.ovpn file with OpenVPN client to connect to shark OpenVPN server.">>$content_file
+	echo "      "
+	echo "      "
+	echo "      "
+	echo "		shark cloud">>$content_file
+	echo "         " `date +%Y%m%d`>>$content_file
+
+	echo "++++++++++++++++<mailto: $vpn_user content,address $mail_address>+++++++++++++++++++++++"
+	cat $content_file
+	echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+}
+
+send_mail(){
+	create_mail_content
+	s-nail -a /etc/openvpn/easy-rsa/download/$vpn_user.tar.gz -s "openvpn client key files,from shark cloud " $mail_address < $content_file
+	echo "Send the key files $vpn_user.tar.gz to $mail_address successfully"
+}
+
+main()
+  #main
+  {
+  if [ $args_num -eq 0 ];then
+	  help
+#		  echo "================================================<Error>================================================"
+#		  echo "invalid option"
+#		  echo "================================================<help>================================================="
+#		  help
+#		  echo "=========================================================================================================="
+	  else
+		  if [ $option = "add" ];then
+  			if [ $args_num -ne 3 ];then
+	  			echo "invalid option"
+	  			help
+  			else
+			  add_user
+			fi
+		  elif [ $option = "add-mail" ];then
+  			if [ $args_num -ne 4 ];then
+	  			echo "invalid option"
+	  			help
+  			else
+			  add_mail
+			fi
+		  elif [ $option = "copy" ];then
+  			if [ $args_num -ne 2 ];then
+	  			echo "invalid option"
+	  			help
+  			else
+			  	copy_user
+			fi
+		  elif [ $option = "copy-mail" ];then
+  			if [ $args_num -ne 4 ];then
+	  			echo "invalid option"
+	  			help
+  			else
+			  	copy_mail
+			fi
+		  elif [ $option = "del" ];then
+  			if [ $args_num -ne 3 ];then
+	  			echo "invalid option"
+	  			help
+			else
+			      	del_user
+			fi
+		  else
+			  help
+		  fi
+	  fi
+  }
+############################ exec ###########################
+main
+if [ $? -ne 0 ]; then
+	echo "++++++++++++++++++++++++++++ error code : $? +++++++++++++++++++++++++++++"
+fi
+#############################################################

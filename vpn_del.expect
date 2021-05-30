@@ -1,0 +1,16 @@
+#!/usr/bin/expect
+set timeout 600
+set username [lindex $argv 0]
+set password [lindex $argv 1]
+
+spawn ./easyrsa revoke $username
+expect  {
+	"Continue with revocation:" {send "yes\r";exp_continue;}
+	"*ca.key*"  { send "$password\r"; exp_continue;}
+}
+spawn ./easyrsa gen-crl
+expect  {
+	"*ca.key*"  { send "$password\r"; exp_continue;}
+}
+exit
+

@@ -1,0 +1,13 @@
+#!/usr/bin/expect
+set timeout 600
+set username [lindex $argv 0]
+set password  [lindex $argv 1]
+
+spawn ./easyrsa build-client-full $username
+expect  {
+	"Enter PEM pass phrase:" {send "$password\r";exp_continue;}
+	"Verifying - Enter PEM pass phrase:"  {send "$password\r";exp_continue;}
+	"*ca.key*"  { send "$password\r"; exp_continue;}
+}
+exit
+
