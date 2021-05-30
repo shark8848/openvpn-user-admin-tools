@@ -33,9 +33,7 @@
   #add user
   {
 	  if [ -f /etc/openvpn/easy-rsa/pki/issued/$vpn_user.crt ];then
-#		  echo "================================================<notice>================================================"
 		  echo "The user $vpn_user already exist"
-#		  echo "=========================================================================================================="
 	  else
 		  cd /etc/openvpn/easy-rsa/
 		  source ./vars &>/dev/null
@@ -56,12 +54,9 @@
 		  create_ovpn
   # tar the files ,create the download file.
 		  tar zcf /etc/openvpn/easy-rsa/download/$vpn_user.tar.gz *.* &>/dev/null
-#		  echo "================================================<notice>================================================"
 		  echo "User $vpn_user created successfully"
 		  #rm -rf *.*
-#		  echo "================================================<notice>================================================"
 		  echo "The key file of user $vpn_user is generated successfully. Please download it in the directory /etc/openvpn/easy-rsa/download"
-#		  echo "=========================================================================================================="
 	  fi
   }
 # create and mail to $mail_address
@@ -73,7 +68,6 @@
   create_ovpn()
   # create file .ovpn
   {
-# 	echo "================================================<Create file .ovpn>================================================"
 	echo -e "client" > $vpn_user.ovpn
 	echo -e "dev tun\nproto tcp\nremote 8.136.114.86 9194\nresolv-retry infinite\nnobind">>$vpn_user.ovpn
 	echo -e ";user nobody\n;group nobody\npersist-key\npersist-tun\nca ca.crt">>$vpn_user.ovpn
@@ -101,9 +95,7 @@
   # tar the files ,create the download file.
 		  tar zcf /etc/openvpn/easy-rsa/download/$vpn_user.tar.gz *.* &>/dev/null
 		  rm -rf *.*
-#	  echo "================================================<notice>================================================"
 		  echo "The key file of user $vpn_user is generated successfully. Please download it in the directory /etc/openvpn/easy-rsa/download"
-#	  echo "=========================================================================================================="
 	else
 		  echo "The user $vpn_user is not exist"
 	fi
@@ -117,10 +109,6 @@ copy_mail(){
   del_user()
   #del user
   {
-#  if [ $args_num -ne 2 ];then
-#	  echo "invalid option"
-#	  help
-#  else
 	  if [ -f /etc/openvpn/easy-rsa/pki/issued/$vpn_user.crt ];then
 		  cd /etc/openvpn/easy-rsa/
 		  source ./vars &>/dev/null
@@ -129,13 +117,10 @@ copy_mail(){
 		  rm -rf /etc/openvpn/easy-rsa/pki/private/$vpn_user.key
 		  rm -rf /etc/openvpn/easy-rsa/pki/issued/$vpn_user.crt
 		  rm -rf /etc/openvpn/easy-rsa/pki/reqs/$vpn_user.req
-#		  echo "================================================<successfully>================================================"
 		  echo "User $vpn_user deleted successfully"
-#		  echo "=========================================================================================================="
 	  else
 		  echo "The user $vpn_user is not exist"
 	  fi
-#  fi
   }
 
 create_mail_content(){
@@ -169,11 +154,6 @@ main()
   {
   if [ $args_num -eq 0 ];then
 	  help
-#		  echo "================================================<Error>================================================"
-#		  echo "invalid option"
-#		  echo "================================================<help>================================================="
-#		  help
-#		  echo "=========================================================================================================="
 	  else
 		  if [ $option = "add" ];then
   			if [ $args_num -ne 3 ];then
